@@ -7,10 +7,11 @@ namespace DockerComposeFixture
     {
         Func<string[], bool> CustomUpTest { get; set; }
         string[] DockerComposeFiles { get; set; }
-        bool DebugLog { get; set; }
         string DockerComposeUpArgs { get; set; }
         string DockerComposeDownArgs { get; set; }
         int StartupTimeoutSecs { get; set; }
+        
+        string LogFilePath { get; set; }
         
         IEnumerable<KeyValuePair<string, object>> EnvironmentVariables { get; set; }
 

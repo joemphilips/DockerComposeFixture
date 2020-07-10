@@ -20,10 +20,7 @@ namespace DockerComposeFixture
         /// Default is 'docker-compose.yml'
         /// </summary>
         public string[] DockerComposeFiles { get; set; } = new[] { "docker-compose.yml" };
-        /// <summary>
-        /// When true this logs docker-compose output to %temp%\docker-compose-*.log
-        /// </summary>
-        public bool DebugLog { get; set; }
+        
         /// <summary>
         /// Arguments to append after 'docker-compose -f file.yml up'
         /// Default is 'docker-compose -f file.yml up' you can append '--build' if you want it to always build
@@ -36,6 +33,8 @@ namespace DockerComposeFixture
         public string DockerComposeDownArgs { get; set; } = "--remove-orphans";
         
         public IEnumerable<KeyValuePair<string, object>> EnvironmentVariables { get; set; }
+
+        public string LogFilePath { get; set; }
 
         /// <summary>
         /// How many seconds to wait for the application to start before giving up. (Default is 120.)

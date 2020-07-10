@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using DockerComposeFixture.Compose;
 using DockerComposeFixture.Exceptions;
@@ -15,16 +14,16 @@ namespace DockerComposeFixture
 {
     public class DockerFixture : IDisposable
     {
-        private IDockerCompose dockerCompose;
-        private Func<string[], bool> customUpTest;
-        private bool initialised;
+        private IDockerCompose _dockerCompose;
+        private Func<string[], bool> _customUpTest;
+        private bool _initialised;
         private ILogger[] loggers;
-        private int startupTimeoutSecs;
-        private readonly IMessageSink output;
+        private int _startupTimeoutSecs;
+        private readonly IMessageSink _output;
 
         public DockerFixture(IMessageSink output)
         {
-            this.output = output;
+            this._output = output;
         }
 
         /// <summary>
@@ -45,10 +44,10 @@ namespace DockerComposeFixture
         /// <param name="dockerCompose"></param>
         public async Task InitOnceAsync(Func<IDockerFixtureOptions> setupOptions, IDockerCompose dockerCompose)
         {
-            if (!this.initialised)
+            if (!this._initialised)
             {
                 await this.InitAsync(setupOptions, dockerCompose);
-                this.initialised = true;
+                this._initialised = true;
             }
         }
 
@@ -71,21 +70,19 @@ namespace DockerComposeFixture
         {
             var options = setupOptions();
             options.Validate();
-            string logFile = options.DebugLog
-                ? Path.Combine(Path.GetTempPath(), $"docker-compose-{DateTime.Now.Ticks}.log")
-                : null;
+            string logFile = options.LogFilePath;
 
             await this.InitAsync(options.DockerComposeFiles, options.DockerComposeUpArgs, options.DockerComposeDownArgs,
-                options.StartupTimeoutSecs, options.CustomUpTest, compose, this.GetLoggers(logFile).ToArray(), options.EnvironmentVariables);
+                options.StartupTimeoutSecs, options.CustomUpTest,options.LogFilePath, compose, this.GetLoggers(logFile).ToArray(), options.EnvironmentVariables);
         }
 
         private IEnumerable<ILogger> GetLoggers(string file)
         {
             yield return new ListLogger();
-            yield return new ConsoleLogger();
-            if (this.output != null)
+            // yield return new ConsoleLogger();
+            if (this._output != null)
             {
-                yield return new XUnitLogger(this.output);
+                yield return new XUnitLogger(this._output);
             }
             if (!string.IsNullOrEmpty(file))
             {
@@ -105,17 +102,17 @@ namespace DockerComposeFixture
         /// <param name="logger"></param>
         /// <param name="environmentVariables"></param>
         public async Task InitAsync(string[] dockerComposeFiles, string dockerComposeUpArgs, string dockerComposeDownArgs,
-            int startupTimeoutSecs, Func<string[], bool> customUpTest = null,
+            int startupTimeoutSecs, Func<string[], bool> customUpTest = null, string? logFilePath = null,
             IDockerCompose dockerCompose = null, ILogger[] logger = null, IEnumerable<KeyValuePair<string, object>> environmentVariables = null)
         {
-            this.loggers = logger ?? GetLoggers(null).ToArray();
+            this.loggers = logger ?? GetLoggers(logFilePath).ToArray();
 
             var dockerComposeFilePaths = dockerComposeFiles.Select(this.GetComposeFilePath);
-            this.dockerCompose = dockerCompose ?? new DockerCompose(this.loggers, environmentVariables);
-            this.customUpTest = customUpTest;
-            this.startupTimeoutSecs = startupTimeoutSecs;
+            this._dockerCompose = dockerCompose ?? new DockerCompose(this.loggers, environmentVariables);
+            this._customUpTest = customUpTest;
+            this._startupTimeoutSecs = startupTimeoutSecs;
 
-            this.dockerCompose.Init(
+            this._dockerCompose.Init(
                 string.Join(" ",
                         dockerComposeFilePaths
                             .Select(f => $"-f \"{f}\""))
@@ -175,9 +172,9 @@ namespace DockerComposeFixture
                 UseShellExecute = false,
                 RedirectStandardOutput = true
             });
-            ps.WaitForExit();
+            ps?.WaitForExit();
 
-            var ids = (await ps.StandardOutput.ReadToEndAsync())
+            var ids = (await ps?.StandardOutput?.ReadToEndAsync())
                 .Split('\n')
                 .Skip(1)
                 .Where(s => killEverything || filterRx.IsMatch(s))
@@ -205,20 +202,20 @@ namespace DockerComposeFixture
             }
 
             this.loggers.Log("---- starting docker services ----");
-            var upTask = this.dockerCompose.Up();
+            var upTask = this._dockerCompose.Up();
 
-            for (int i = 0; i < this.startupTimeoutSecs; i++)
+            for (int i = 0; i < this._startupTimeoutSecs; i++)
             {
                 if (upTask.IsCompleted)
                 {
                     this.loggers.Log("docker-compose exited prematurely");
                     break;
                 }
-                this.loggers.Log($"---- checking docker services ({i + 1}/{this.startupTimeoutSecs}) ----");
+                this.loggers.Log($"---- checking docker services ({i + 1}/{this._startupTimeoutSecs}) ----");
                 await Task.Delay(1000);
-                if (this.customUpTest != null)
+                if (this._customUpTest != null)
                 {
-                    if (this.customUpTest(this.loggers.GetLoggedLines()))
+                    if (this._customUpTest(this.loggers.GetLoggedLines()))
                     {
                         this.loggers.Log("---- custom up test satisfied ----");
                         return;
@@ -239,7 +236,7 @@ namespace DockerComposeFixture
 
         private (bool hasContainers, bool containersAreUp) CheckIfRunning()
         {
-            var lines = this.dockerCompose.Ps().ToList()
+            var lines = this._dockerCompose.Ps().ToList()
                 .Where(l => l != null)
                 .SkipWhile(l => !l.Contains("--------"))
                 .Skip(1)
@@ -251,7 +248,7 @@ namespace DockerComposeFixture
 
         private void Stop()
         {
-            this.dockerCompose.Down();
+            this._dockerCompose.Down();
         }
     }
 }
