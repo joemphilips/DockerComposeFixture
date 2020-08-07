@@ -185,7 +185,11 @@ namespace DockerComposeFixture
             {
                 Process.Start("docker", $"kill {id}").WaitForExit();
             }
+        }
 
+        public Task Restart(string serviceName = null)
+        {
+            return this._dockerCompose.Restart(serviceName);
         }
 
         public virtual void Dispose()

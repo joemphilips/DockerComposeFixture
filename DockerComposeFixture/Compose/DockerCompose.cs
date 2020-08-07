@@ -60,6 +60,12 @@ namespace DockerComposeFixture.Compose
             this.RunProcess(down);
         }
 
+        public Task Restart(string serviceName = null)
+        {
+            var restart = new ProcessStartInfo("docker-compose", $"{this.dockerComposeArgs} restart" + $" {serviceName}");
+            return Task.Run(() => RunProcess(restart));
+        }
+
         public IEnumerable<string> Ps()
         {
             var ps = new ProcessStartInfo("docker-compose", $"{this.dockerComposeArgs} ps");

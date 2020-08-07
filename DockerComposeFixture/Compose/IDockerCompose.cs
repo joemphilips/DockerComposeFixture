@@ -11,6 +11,13 @@ namespace DockerComposeFixture.Compose
         void Down();
         IEnumerable<string> Ps();
         Task Up();
+
+        /// <summary>
+        /// Restart specific service. If it is null, restart every service.
+        /// </summary>
+        /// <param name="serviceName"></param>
+        /// <returns></returns>
+        Task Restart(string serviceName = null);
         int PauseMs { get; }
         ILogger[] Logger { get; }
     }
